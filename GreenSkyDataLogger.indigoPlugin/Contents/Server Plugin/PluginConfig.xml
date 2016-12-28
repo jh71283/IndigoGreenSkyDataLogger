@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<!-- You can add a SupportURL element inside here if you want a context
+		 sensitive help link on the config UI - otherwise it will just link
+		 to the URL specified in the Info.plist. -->
+
+
+	<Field type="textfield" id="serverAddress" defaultvalue="localhost">
+        <Label>Carbon Server Address:</Label>
+    </Field>
+    <Field type="textfield" id="serverPort" defaultvalue="2003">
+        <Label>Carbon Server Port:</Label>
+    </Field>
+    <Field id="showDebugInfo" type="checkbox">
+		<Label>Enable debugging:</Label>
+		<Description>(not recommended)</Description>
+	</Field>
+</PluginConfig>
