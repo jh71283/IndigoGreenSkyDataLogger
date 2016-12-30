@@ -34,6 +34,7 @@ class Plugin(indigo.PluginBase):
 		self.CARBON_PORT = 0
 		self.updatePrefs(pluginPrefs)
 		self.LastConnectionWarning = datetime.datetime.now()-datetime.timedelta(days=1)
+	
 
 	def __del__(self):
 		indigo.PluginBase.__del__(self)
@@ -52,14 +53,18 @@ class Plugin(indigo.PluginBase):
 		GraphiteFolderID = indigo.variables.folders.getId("Graphite")
 		vmessage = ''
 		while True:
+			self.debugLog("RCT")
 			sock = socket.socket()
 			try:
+				self.debugLog('Connecting to Carbon Server ' + self.CARBON_SERVER + ':' + str(self.CARBON_PORT))
 				sock.connect((self.CARBON_SERVER, self.CARBON_PORT))
 				for var in indigo.variables:
 					if var.folderId == GraphiteFolderID:
 						vmessage = '%s %s %d\n' % ('indigo.' + var.name, var.value, int(time.time()))
 						sock.sendall(vmessage)
 						self.debugLog(vmessage)
+						
+			
 				sock.close()
 			except:
 				if self.dateDiff(datetime.datetime.now(),self.LastConnectionWarning) > 30:
@@ -87,86 +92,20 @@ class Plugin(indigo.PluginBase):
 			self.LastConnectionWarning = datetime.datetime.now()-datetime.timedelta(days=1)
 			
 			
-	def variableUpdated(self, origVar, newVar):
-		
-		
-		vmessage=''
-		if newVar.name.startswith('Graphite') == True:
-			vmessage = '%s %s %d\n' % ('indigo.' + newVar.name, newVar.value, int(time.time()))
-			sock = socket.socket()
-			sock.connect((self.CARBON_SERVER, self.CARBON_PORT))
-			sock.sendall(vmessage)
-			sock.close()
+
 			
 	def startup(self):
 		self.debugLog("startup called")
-		indigo.devices.subscribeToChanges()
-		#indigo.variables.subscribeToChanges()
- 
+	
 	def shutdown(self):
 		self.debugLog("shutdown called")
 
-
-	def deviceCreated(self, device):
-		self.debugLog("logger device created")
-		
-	def deviceUpdated(self, origDev, newDev):
-		#self.debugLog("logger device updated")
-		self.dd(origDev.states, newDev.states, newDev.name.replace(" ",""));
-		
-	def deviceDeleted(self, device):
-		self.debugLog("logger device deleted")
 	def dateDiff(self,d1,d2):
 		diff = d1-d2
 		
 		return (diff.days * 86400) + diff.seconds
 	
-	
-	def dd(self, d1, d2, ctx=""):
-		#self.debugLog( "Changes in " + ctx)
-	
-		#self.debugLog(unicode(d1))
-		for k in d1:
-			if k not in d2:
-				self.debugLog( k + " removed from d2")
-		for k in d2:
-			if k.endswith(".ui"):
-				continue #self.debugLog( "2")
-			if k not in d1:
-				self.debugLog( k + " added in d2")
-				continue
-			if d2[k] != d1[k]:
-				if k.endswith(".ui"):
-					continue
-				if type(d2[k]) not in (dict, list):
-					#self.debugLog(ctx + "." + k  + " changed to " + unicode(d2[k]))
-					#self.debugLog("Sending to Graphite")
-					
-					timestamp = int(time.time())
-					message = '%s %s %d\n' % (ctx + "." + k, unicode(d2[k]), timestamp)
-					self.debugLog(message)
-					try:
-						sock = socket.socket()
-						sock.connect((self.CARBON_SERVER, self.CARBON_PORT))
-						sock.sendall(message)
-						sock.close()
-					except:
-						if self.dateDiff(datetime.datetime.now(),self.LastConnectionWarning) > 30:
-							self.LastConnectionWarning = datetime.datetime.now()
-							indigo.server.log('Error connecting to Carbon server. Please check configuration!')
-			
-				else:
-					if type(d1[k]) != type(d2[k]):
-						self.debugLog(	ctx+ "." + k + " changed to 2 " + unicode(d2[k]))
-						
-						continue
-					else:
-						if type(d2[k]) == dict:
-							dd(d1[k], d2[k], k)
-							continue
-							
-		#self.debugLog( "Done with changes in " + ctx)
-		
+
 
 		
 		
