@@ -44,32 +44,70 @@ class Plugin(indigo.PluginBase):
 		self.debug = prefs.get("showDebugInfo", False)
 		self.CARBON_SERVER = prefs.get("serverAddress", 'localhost')
 		self.CARBON_PORT = int(prefs.get("serverPort", 2003))
+		self.VariablesToLog = prefs.get("variablesToLog",[])
 		if self.debug == True:
 			self.debugLog("logger debugging enabled")
 		else:
 			self.debugLog("logger debugging disabled")
+			
+		self.debugLog(str(self.VariablesToLog))
 	
+	def variablesList(self, filter="", valuesDict=None, typeId="", targetId=0):
+	# From the example above, filter = “stuff”
+	# You can pass anything you want in the filter for any purpose
+	# Create an array where each entry is a list - the first item is
+	# the value attribute and last is the display string that will 
+	# show up in the control. All parameters are read-only.
+	#return myArray
+		returnListA = []
+		returnListB = []
+		for var in indigo.variables:
+			if var.folderId == 0:
+				returnListA.append((var.id,self.getFullyQualifiedVariableName(var.id)))
+			else:
+				returnListB.append((var.id,self.getFullyQualifiedVariableName(var.id)))
+				
+		returnListA = sorted(returnListA,key=lambda var: var[1])
+		returnListB = sorted(returnListB,key=lambda var: var[1])
+		
+		return returnListA + returnListB
+	
+	def getFullyQualifiedVariableName(self, variableID):
+		var = indigo.variables[variableID]
+		if var.folderId == 0:
+			return   var.name
+		else:
+			folder = indigo.variables.folders[var.folderId]
+			return  folder.name + '.' + var.name
+		 
+	def transformValue(self, value):
+		if value=='true':
+			return '1'
+		elif value=='false':
+			return '0'
+		else:
+			return value
+		
 	def runConcurrentThread(self):
-		GraphiteFolderID = indigo.variables.folders.getId("Graphite")
 		vmessage = ''
 		while True:
-			self.debugLog("RCT")
+			#self.debugLog("RCT")
 			sock = socket.socket()
 			try:
-				self.debugLog('Connecting to Carbon Server ' + self.CARBON_SERVER + ':' + str(self.CARBON_PORT))
+				#self.debugLog('Connecting to Carbon Server ' + self.CARBON_SERVER + ':' + str(self.CARBON_PORT))
 				sock.connect((self.CARBON_SERVER, self.CARBON_PORT))
-				for var in indigo.variables:
-					if var.folderId == GraphiteFolderID:
-						vmessage = '%s %s %d\n' % ('indigo.' + var.name, var.value, int(time.time()))
-						sock.sendall(vmessage)
-						self.debugLog(vmessage)
+				for vtl in self.VariablesToLog:
+					var = indigo.variables[int(vtl)]
+					vmessage = '%s %s %d\n' % ('indigo.' + self.getFullyQualifiedVariableName(var.id), self.transformValue(var.value), int(time.time()))
+					sock.sendall(vmessage)
+					self.debugLog(vmessage)
 						
 			
 				sock.close()
 			except:
 				if self.dateDiff(datetime.datetime.now(),self.LastConnectionWarning) > 30:
 					self.LastConnectionWarning = datetime.datetime.now()
-					indigo.server.log('Error connecting to Carbon server. Please check configuration! (This warning will only appear at most every 30s)')
+					indigo.server.log('Error connecting to Carbon server ' + self.CARBON_SERVER + ':' + str(self.CARBON_PORT) +'  Please check configuration! (This warning will only appear at most every 30s)')
 					
 			self.sleep(1)
 	
@@ -84,6 +122,7 @@ class Plugin(indigo.PluginBase):
 			self.debug = valuesDict.get("showDebugInfo", False)
 			self.CARBON_SERVER = valuesDict.get("serverAddress", 'localhost')
 			self.CARBON_PORT = int(valuesDict.get("serverPort", 2003))
+			self.VariablesToLog = prefs.get("variablesToLog",[])
 			if self.debug:
 				indigo.server.log("Debug logging enabled")
 			else:

@@ -11,6 +11,10 @@
     <Field type="textfield" id="serverPort" defaultvalue="2003">
         <Label>Carbon Server Port:</Label>
     </Field>
+    <Field id="variablesToLog" type="list">
+        <List class="self" method="variablesList"/>
+		<Label>Log Variables:</Label>
+	</Field>
     <Field id="showDebugInfo" type="checkbox">
 		<Label>Enable debugging:</Label>
 		<Description>(not recommended)</Description>
